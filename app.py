@@ -167,24 +167,52 @@ def insight(text):
     st.markdown(f'<div class="insight-box">💡 {text}</div>', unsafe_allow_html=True)
 
 def chart(fig, caption_text, interpretar_text, dados_text, insight_text=None):
-    """Renderiza gráfico com dados fixos por baixo e dropdown de interpretação."""
+    """Renderiza gráfico com dropdown de interpretação e insights."""
     st.plotly_chart(fig, use_container_width=True, theme=None)
     if caption_text:
         st.caption(caption_text)
-    # "De onde vêm estes dados?" — sempre visível, fixo
-    st.markdown(
-        f'<div style="background:{CARD_BG};border:1px solid {GRID};border-radius:8px;'
-        f'padding:10px 14px;margin:4px 0 6px 0;font-size:0.80rem;color:{MUTED};">'
-        f'🗄️ <b style="color:{TEXT}">De onde vêm estes dados?</b>'
-        f'&nbsp;&nbsp;{dados_text}</div>',
-        unsafe_allow_html=True,
-    )
     with st.expander("📖 Como interpretar este gráfico"):
         st.markdown(interpretar_text)
     if insight_text:
         with st.expander("💡 Como são gerados estes Insights"):
             st.markdown(insight_text)
     st.markdown("")
+
+def tab_header(audiencia, decisao, janela, dados):
+    """Bloco fixo por aba: De onde vêm estes dados + Audiência + Decisão + Janela."""
+    st.markdown(f"""
+    <div style="background:{CARD_BG};border:1px solid {GRID};border-radius:10px;
+                padding:14px 20px;margin-bottom:16px;display:flex;gap:32px;flex-wrap:wrap;">
+        <div>
+            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
+                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
+                👥 Audiência
+            </div>
+            <div style="color:{TEXT};font-size:0.85rem;font-weight:500">{audiencia}</div>
+        </div>
+        <div>
+            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
+                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
+                🎯 Decisão
+            </div>
+            <div style="color:{TEXT};font-size:0.85rem;font-weight:500">{decisao}</div>
+        </div>
+        <div>
+            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
+                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
+                🕐 Janela Temporal
+            </div>
+            <div style="color:{TEXT};font-size:0.85rem;font-weight:500">{janela}</div>
+        </div>
+        <div style="flex:1;min-width:200px">
+            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
+                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
+                🗄️ De onde vêm estes dados?
+            </div>
+            <div style="color:{MUTED};font-size:0.80rem">{dados}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 def apply_layout(fig, title="", legend=None, margin=None):
     """Aplica PLOTLY_LAYOUT sem conflitos de chaves duplicadas."""
@@ -367,7 +395,13 @@ tab_map = {i: tabs[abas_acesso.index(i)] for i in abas_acesso}
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_map[0]:
 
-    # KPIs
+    tab_header(
+        audiencia="Todos os perfis (Clínico, Gestão, Administração)",
+        decisao="Compreender o volume, composição e distribuição da população hospitalar",
+        janela="2011–2025 · Dados históricos de internamento",
+        dados="Base de dados Hospitais.xlsx · 449 doentes · 6 hospitais da Região de Lisboa · "
+              "variáveis demográficas, administrativas e clínicas após limpeza e correcção de 4 anomalias.",
+    )
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         kpi("Total Doentes", f"{n_total}", "amostra filtrada", BLUE)
@@ -569,6 +603,14 @@ with tab_map[0]:
 # ABA 1 — PERFIL CLÍNICO
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_map[1]:
+
+    tab_header(
+        audiencia="Clínico · Gestão · Administração",
+        decisao="Identificar o perfil de risco clínico da população internada e priorizar intervenções",
+        janela="Momento de internamento · Dados transversais por doente",
+        dados="Variáveis clínicas da base Hospitais.xlsx: Fumador, Diabetes, Colesterol, INS_Cardiaca, "
+              "Hepatite_C, Grau_Dor, COVID_M1/M2/M3, IMC, Freq_Resp, pH, pO2_AntesTrat, Glicemia_AntesTrat.",
+    )
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -798,6 +840,14 @@ with tab_map[1]:
 if 2 in abas_acesso:
     with tab_map[2]:
 
+        tab_header(
+            audiencia="Gestão · Administração",
+            decisao="Comparar desempenho entre hospitais e identificar unidades com maior risco ou volume",
+            janela="Período completo 2011–2025 · Agregados por unidade hospitalar",
+            dados="Variáveis Hospital, Dias_Inter, MortEsperada, Idade, IMC, pO2_AntesTrat, "
+                  "pO2_DepoisTrat, TipodeADM e TipodeDoente da base Hospitais.xlsx.",
+        )
+
         # KPIs
         hosp_stats = df.groupby("Hospital").agg(
             n=("ID_Doente","count"),
@@ -835,8 +885,9 @@ if 2 in abas_acesso:
             tabela.style
             .format({"Doentes":"{:.0f}","Dias Inter. (média)":"{:.1f}",
                      "Mort. Esp. (%)":"{:.1f}","Idade Média":"{:.1f}","IMC Médio":"{:.2f}"})
-            .background_gradient(subset=["Mort. Esp. (%)"], cmap="RdYlGn_r")
-            .background_gradient(subset=["Doentes"], cmap="Blues"),
+            .map(lambda v: f"color: {RED}; font-weight:600" if isinstance(v, float) and v > 28
+                 else (f"color: {AMBER}; font-weight:600" if isinstance(v, float) and v > 22
+                       else ""), subset=["Mort. Esp. (%)"]),
             use_container_width=True,
             hide_index=True,
         )
@@ -997,6 +1048,14 @@ if 2 in abas_acesso:
 # ══════════════════════════════════════════════════════════════════════════════
 if 3 in abas_acesso:
     with tab_map[3]:
+
+        tab_header(
+            audiencia="Gestão · Administração",
+            decisao="Avaliar o impacto terapêutico nos parâmetros clínicos e identificar padrões de resposta",
+            janela="Antes e depois do tratamento · Três momentos de plaquetas (M1/M2/M3)",
+            dados="Variáveis pO2_AntesTrat, pO2_DepoisTrat, Glicemia_AntesTrat, Glicemia_DepoisTrat, "
+                  "Satur_O2_*, Plaquetas_M1/M2/M3 e todas as variáveis quantitativas da base Hospitais.xlsx.",
+        )
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -1184,7 +1243,13 @@ if 3 in abas_acesso:
 if 4 in abas_acesso:
     with tab_map[4]:
 
-        mort_geral = df["MortEsperada_Pct"].mean()
+        tab_header(
+            audiencia="Administração (acesso exclusivo)",
+            decisao="Identificar segmentos de maior risco e validar hipóteses estatísticas sobre mortalidade",
+            janela="Período completo · Score de mortalidade contínuo por doente",
+            dados="Variável MortEsperada (score contínuo 0–1) cruzada com Sexo, Hospital, Faixa_Etaria "
+                  "e comorbilidades. Testes estatísticos calculados com scipy.stats sobre a amostra filtrada.",
+        )
         mort_m_val = df[df["Sexo"]=="M"]["MortEsperada_Pct"].mean()
         mort_f_val = df[df["Sexo"]=="F"]["MortEsperada_Pct"].mean()
         h_maior_risco = df.groupby("Hospital")["MortEsperada_Pct"].mean().idxmax()
