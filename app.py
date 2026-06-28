@@ -178,41 +178,34 @@ def chart(fig, caption_text, interpretar_text, dados_text, insight_text=None):
             st.markdown(insight_text)
     st.markdown("")
 
-def tab_header(audiencia, decisao, janela, dados):
-    """Bloco fixo por aba: De onde vêm estes dados + Audiência + Decisão + Janela."""
+def tab_header(audiencia, decisao, janela, dados, glossario_dict=None):
+    """Bloco subtil por aba: pills de contexto + expanders de dados e glossário."""
     st.markdown(f"""
-    <div style="background:{CARD_BG};border:1px solid {GRID};border-radius:10px;
-                padding:14px 20px;margin-bottom:16px;display:flex;gap:32px;flex-wrap:wrap;">
-        <div>
-            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
-                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
-                👥 Audiência
-            </div>
-            <div style="color:{TEXT};font-size:0.85rem;font-weight:500">{audiencia}</div>
-        </div>
-        <div>
-            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
-                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
-                🎯 Decisão
-            </div>
-            <div style="color:{TEXT};font-size:0.85rem;font-weight:500">{decisao}</div>
-        </div>
-        <div>
-            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
-                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
-                🕐 Janela Temporal
-            </div>
-            <div style="color:{TEXT};font-size:0.85rem;font-weight:500">{janela}</div>
-        </div>
-        <div style="flex:1;min-width:200px">
-            <div style="font-size:0.68rem;font-weight:700;color:{MUTED};
-                        text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">
-                🗄️ De onde vêm estes dados?
-            </div>
-            <div style="color:{MUTED};font-size:0.80rem">{dados}</div>
-        </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+        <span style="font-size:0.72rem;color:{MUTED};margin-right:4px">contexto</span>
+        <span style="background:{CARD_BG};border:1px solid {GRID};border-radius:20px;
+                     padding:3px 10px;font-size:0.75rem;color:{TEXT};">
+            👥 {audiencia}
+        </span>
+        <span style="background:{CARD_BG};border:1px solid {GRID};border-radius:20px;
+                     padding:3px 10px;font-size:0.75rem;color:{TEXT};">
+            🎯 {decisao}
+        </span>
+        <span style="background:{CARD_BG};border:1px solid {GRID};border-radius:20px;
+                     padding:3px 10px;font-size:0.75rem;color:{TEXT};">
+            🕐 {janela}
+        </span>
     </div>
     """, unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.expander("🗄️ De onde vêm estes dados?"):
+            st.markdown(dados)
+    if glossario_dict:
+        with col2:
+            with st.expander("📌 O que significam estes termos?"):
+                for termo, definicao in glossario_dict.items():
+                    st.markdown(f"**{termo}** — {definicao}")
 
 def apply_layout(fig, title="", legend=None, margin=None):
     """Aplica PLOTLY_LAYOUT sem conflitos de chaves duplicadas."""
@@ -399,8 +392,14 @@ with tab_map[0]:
         audiencia="Todos os perfis (Clínico, Gestão, Administração)",
         decisao="Compreender o volume, composição e distribuição da população hospitalar",
         janela="2011–2025 · Dados históricos de internamento",
-        dados="Base de dados Hospitais.xlsx · 449 doentes · 6 hospitais da Região de Lisboa · "
+        dados="Base de dados **Hospitais.xlsx** · 449 doentes · 6 hospitais da Região de Lisboa · "
               "variáveis demográficas, administrativas e clínicas após limpeza e correcção de 4 anomalias.",
+        glossario_dict={
+            "Admissão Urgente": "Doente internado por via de urgência, sem agendamento prévio (TipodeADM = U).",
+            "PPP": "Parceria Público-Privada — hospital gerido por entidade privada com financiamento público.",
+            "Faixa Etária": "Intervalo de 10 anos que agrupa doentes com idades semelhantes para análise comparativa.",
+            "Internamento": "Período de permanência do doente numa unidade hospitalar, medido em dias.",
+        },
     )
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -591,13 +590,6 @@ with tab_map[0]:
           "Volume de doentes calculado a partir dos filtros activos.",
           None)
 
-    glossario({
-        "Admissão Urgente": "Doente internado por via de urgência, sem agendamento prévio (TipodeADM = U).",
-        "PPP": "Parceria Público-Privada — hospital gerido por entidade privada com financiamento público.",
-        "Faixa Etária": "Intervalo de 10 anos que agrupa doentes com idades semelhantes para análise comparativa.",
-        "Internamento": "Período de permanência do doente numa unidade hospitalar, medido em dias.",
-    })
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 1 — PERFIL CLÍNICO
@@ -608,8 +600,16 @@ with tab_map[1]:
         audiencia="Clínico · Gestão · Administração",
         decisao="Identificar o perfil de risco clínico da população internada e priorizar intervenções",
         janela="Momento de internamento · Dados transversais por doente",
-        dados="Variáveis clínicas da base Hospitais.xlsx: Fumador, Diabetes, Colesterol, INS_Cardiaca, "
+        dados="Variáveis clínicas da base **Hospitais.xlsx**: Fumador, Diabetes, Colesterol, INS_Cardiaca, "
               "Hepatite_C, Grau_Dor, COVID_M1/M2/M3, IMC, Freq_Resp, pH, pO2_AntesTrat, Glicemia_AntesTrat.",
+        glossario_dict={
+            "Comorbilidade": "Condição clínica adicional presente no doente para além da patologia principal que motivou o internamento.",
+            "Mortalidade Esperada": "Score contínuo [0–1] que estima a probabilidade de morte do doente. Aqui expresso em percentagem.",
+            "IMC": "Índice de Massa Corporal = Peso (kg) / Altura² (m). Normal: 18.5–25; Pré-obeso: 25–30; Obeso: >30.",
+            "Grau de Dor": "Escala numérica de 0 (sem dor) a 10 (dor máxima) reportada pelo doente no momento do internamento.",
+            "COVID M1/M2/M3": "Estado serológico COVID em três momentos distintos de avaliação (P=Positivo, N=Negativo).",
+            "Mortalidade Alta": f"Score de MortEsperada ≥ percentil 75 da amostra.",
+        },
     )
 
     # KPIs
@@ -824,15 +824,6 @@ with tab_map[1]:
           "normalizadas com MinMaxScaler. Agrupamento por **TipodeDoente**.",
           None)
 
-    glossario({
-        "Comorbilidade": "Condição clínica adicional presente no doente para além da patologia principal que motivou o internamento.",
-        "Mortalidade Esperada": "Score contínuo [0–1] que estima a probabilidade de morte do doente. Aqui expresso em percentagem.",
-        "IMC": "Índice de Massa Corporal = Peso (kg) / Altura² (m). Normal: 18.5–25; Pré-obeso: 25–30; Obeso: >30.",
-        "Grau de Dor": "Escala numérica de 0 (sem dor) a 10 (dor máxima) reportada pelo doente no momento do internamento.",
-        "COVID M1/M2/M3": "Estado serológico COVID em três momentos distintos de avaliação durante o internamento (P=Positivo, N=Negativo).",
-        "Mortalidade Alta": f"Score de MortEsperada ≥ percentil 75 da amostra (≥ {df['MortEsperada'].quantile(0.75)*100:.1f}%).",
-    })
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 2 — POR HOSPITAL
@@ -844,8 +835,14 @@ if 2 in abas_acesso:
             audiencia="Gestão · Administração",
             decisao="Comparar desempenho entre hospitais e identificar unidades com maior risco ou volume",
             janela="Período completo 2011–2025 · Agregados por unidade hospitalar",
-            dados="Variáveis Hospital, Dias_Inter, MortEsperada, Idade, IMC, pO2_AntesTrat, "
+            dados="Variáveis **Hospital**, Dias_Inter, MortEsperada, Idade, IMC, pO2_AntesTrat, "
                   "pO2_DepoisTrat, TipodeADM e TipodeDoente da base Hospitais.xlsx.",
+            glossario_dict={
+                "Case-mix": "Conjunto de patologias e graus de complexidade dos doentes atendidos por um hospital.",
+                "Mortalidade Esperada": "Score médio de probabilidade de morte. Não é a taxa real de mortalidade.",
+                "pO₂": "Pressão parcial de oxigénio no sangue (mmHg). Valores normais: 75–100 mmHg.",
+                "PPP": "Parceria Público-Privada. Hospital gerido por empresa privada com contrato público.",
+            },
         )
 
         # KPIs
@@ -1035,13 +1032,6 @@ if 2 in abas_acesso:
               "Variáveis **Hospital**, **TipodeADM_Label** e **TipodeDoente_Label** da base de dados.",
               None)
 
-        glossario({
-            "Case-mix": "Conjunto de patologias e graus de complexidade dos doentes atendidos por um hospital.",
-            "Mortalidade Esperada": "Score médio de probabilidade de morte. Não é a taxa real de mortalidade.",
-            "pO₂": "Pressão parcial de oxigénio no sangue (mmHg). Valores normais: 75–100 mmHg.",
-            "PPP": "Parceria Público-Privada. Hospital gerido por empresa privada com contrato público.",
-        })
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 3 — TRATAMENTO
@@ -1053,8 +1043,15 @@ if 3 in abas_acesso:
             audiencia="Gestão · Administração",
             decisao="Avaliar o impacto terapêutico nos parâmetros clínicos e identificar padrões de resposta",
             janela="Antes e depois do tratamento · Três momentos de plaquetas (M1/M2/M3)",
-            dados="Variáveis pO2_AntesTrat, pO2_DepoisTrat, Glicemia_AntesTrat, Glicemia_DepoisTrat, "
+            dados="Variáveis **pO2_AntesTrat**, pO2_DepoisTrat, Glicemia_AntesTrat, Glicemia_DepoisTrat, "
                   "Satur_O2_*, Plaquetas_M1/M2/M3 e todas as variáveis quantitativas da base Hospitais.xlsx.",
+            glossario_dict={
+                "pO₂": "Pressão parcial de oxigénio arterial (mmHg). Normal: 75–100 mmHg. Baixo: hipoxemia.",
+                "Glicemia": "Concentração de glucose no sangue (mg/dL). Normal em jejum: 70–100 mg/dL.",
+                "Plaquetas M1/M2/M3": "Contagem de plaquetas (×10³/μL) em três momentos de avaliação.",
+                "KDE": "Kernel Density Estimation — estimativa suavizada da distribuição de probabilidade.",
+                "Correlação de Pearson (r)": "Medida de associação linear entre duas variáveis. Varia de −1 a +1.",
+            },
         )
 
         c1, c2, c3, c4 = st.columns(4)
@@ -1078,21 +1075,25 @@ if 3 in abas_acesso:
         with col1:
             # KDE pO2
             from scipy.stats import gaussian_kde
-            for serie, label, cor in [
+            kde_colors = {
+                "Antes": (BLUE, "rgba(91,141,217,0.2)"),
+                "Depois": (GREEN, "rgba(16,185,129,0.2)"),
+            }
+            fig_kde = go.Figure()
+            for serie, label, cor_line in [
                 (df["pO2_AntesTrat"], "Antes", BLUE),
                 (df["pO2_DepoisTrat"], "Depois", GREEN),
             ]:
                 vals = serie.dropna()
                 xs = np.linspace(vals.min(), vals.max(), 200)
                 kde = gaussian_kde(vals)
-                if "fig_kde" not in dir():
-                    fig_kde = go.Figure()
+                _, fill_c = kde_colors[label]
                 fig_kde.add_trace(go.Scatter(
                     x=xs, y=kde(xs), mode="lines",
-                    name=label, line=dict(color=cor, width=2.5),
+                    name=label, line=dict(color=cor_line, width=2.5),
                     fill="tozeroy",
-                    fillcolor=cor + "33",
-                    hovertemplate=f"pO₂={'{x:.1f}'} mmHg<extra>{label}</extra>",
+                    fillcolor=fill_c,
+                    hovertemplate=f"pO₂=%{{x:.1f}} mmHg<extra>{label}</extra>",
                 ))
             apply_layout(fig_kde, "KDE — pO₂ Antes vs Depois do Tratamento",
                          legend=dict(orientation="h", yanchor="top", y=1.18,
@@ -1228,14 +1229,6 @@ if 3 in abas_acesso:
               "Correlações fortes entre pO₂ e Saturação O₂ (antes e depois) são esperadas fisiologicamente. "
               "Correlações entre Peso/IMC/Altura reflectem a definição matemática do IMC.")
 
-        glossario({
-            "pO₂": "Pressão parcial de oxigénio arterial (mmHg). Normal: 75–100 mmHg. Baixo: hipoxemia.",
-            "Glicemia": "Concentração de glucose no sangue (mg/dL). Normal em jejum: 70–100 mg/dL.",
-            "Plaquetas M1/M2/M3": "Contagem de plaquetas (×10³/μL) em três momentos de avaliação.",
-            "KDE": "Kernel Density Estimation — estimativa suavizada da distribuição de probabilidade de uma variável contínua.",
-            "Correlação de Pearson (r)": "Medida de associação linear entre duas variáveis. Varia de −1 (inversa perfeita) a +1 (directa perfeita).",
-        })
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 4 — RISCO & MORTALIDADE
@@ -1247,8 +1240,15 @@ if 4 in abas_acesso:
             audiencia="Administração (acesso exclusivo)",
             decisao="Identificar segmentos de maior risco e validar hipóteses estatísticas sobre mortalidade",
             janela="Período completo · Score de mortalidade contínuo por doente",
-            dados="Variável MortEsperada (score contínuo 0–1) cruzada com Sexo, Hospital, Faixa_Etaria "
+            dados="Variável **MortEsperada** (score contínuo 0–1) cruzada com Sexo, Hospital, Faixa_Etaria "
                   "e comorbilidades. Testes estatísticos calculados com scipy.stats sobre a amostra filtrada.",
+            glossario_dict={
+                "Mortalidade Esperada": "Score probabilístico contínuo [0–1] que estima o risco de morte. Aqui expresso em percentagem.",
+                "H₀ (hipótese nula)": "Hipótese de partida que assume ausência de efeito ou diferença.",
+                "p-value": "Probabilidade de obter um resultado igual ou mais extremo assumindo H₀ verdadeira. Se p < 0,05, rejeita-se H₀.",
+                "Teste t": "Testa se as médias de dois grupos independentes são estatisticamente diferentes.",
+                "Qui-quadrado (χ²)": "Testa se duas variáveis qualitativas são independentes numa tabela de contingência.",
+            },
         )
         mort_m_val = df[df["Sexo"]=="M"]["MortEsperada_Pct"].mean()
         mort_f_val = df[df["Sexo"]=="F"]["MortEsperada_Pct"].mean()
@@ -1426,15 +1426,6 @@ suficiente para a refutar com base na amostra disponível.
 
         insight("O único teste com resultado significativo (p=0,008) é o Teste t para Dias de "
                 "Internamento por Diabetes — doentes diabéticos internam em média ~1,9 dias a mais.")
-
-        glossario({
-            "Mortalidade Esperada": "Score probabilístico contínuo [0–1] que estima o risco de morte. Aqui expresso em percentagem.",
-            "H₀ (hipótese nula)": "Hipótese de partida que assume ausência de efeito ou diferença. O teste avalia se os dados a contradizem.",
-            "p-value": "Probabilidade de obter um resultado igual ou mais extremo, assumindo que H₀ é verdadeira. Se p < 0,05, rejeita-se H₀.",
-            "α (alfa)": "Nível de significância — probabilidade máxima tolerada de erro Tipo I (rejeitar H₀ quando é verdadeira). Convenção: 0,05.",
-            "Teste t": "Testa se as médias de dois grupos independentes são estatisticamente diferentes.",
-            "Qui-quadrado (χ²)": "Testa se duas variáveis qualitativas são independentes numa tabela de contingência.",
-        })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
