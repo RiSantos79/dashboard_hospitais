@@ -1115,14 +1115,23 @@ if 3 in abas_acesso:
             del fig_kde
 
         with col2:
-            # Dispersão pO2 antes vs depois com regressão
-            fig_sc = px.scatter(df, x="pO2_AntesTrat", y="pO2_DepoisTrat",
+            # Dispersão pO2 antes vs depois com regressão (numpy — sem statsmodels)
+            sc_df = df[["pO2_AntesTrat","pO2_DepoisTrat","Hospital","Idade","Dias_Inter"]].dropna()
+            fig_sc = px.scatter(sc_df, x="pO2_AntesTrat", y="pO2_DepoisTrat",
                                 color="Hospital", color_discrete_map=HOSP_COLORS,
                                 opacity=0.6,
-                                hover_data=["Hospital","Idade","Dias_Inter"],
-                                trendline="ols",
-                                trendline_scope="overall",
-                                trendline_color_override=AMBER)
+                                hover_data=["Hospital","Idade","Dias_Inter"])
+            # Reta de regressão manual com numpy
+            x_v = sc_df["pO2_AntesTrat"].values
+            y_v = sc_df["pO2_DepoisTrat"].values
+            m, b = np.polyfit(x_v, y_v, 1)
+            x_line = np.linspace(x_v.min(), x_v.max(), 100)
+            fig_sc.add_trace(go.Scatter(
+                x=x_line, y=m * x_line + b,
+                mode="lines", name=f"Regressão (y={m:.2f}x+{b:.1f})",
+                line=dict(color=AMBER, width=2.5, dash="dash"),
+                hovertemplate=f"Regressão: y = {m:.2f}x + {b:.1f}<extra></extra>",
+            ))
             apply_layout(fig_sc, "Dispersão pO₂ Antes vs Depois com Reta de Regressão",
                          legend=dict(orientation="h", yanchor="top", y=1.18,
                                      xanchor="left", x=-0.02,
