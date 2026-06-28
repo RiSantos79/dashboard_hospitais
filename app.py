@@ -51,9 +51,9 @@ PLOTLY_LAYOUT = dict(
     font=dict(color=TEXT, family="sans-serif", size=12),
     margin=dict(l=16, r=16, t=80, b=16),
     xaxis=dict(showgrid=False, zeroline=False, showline=False,
-               tickcolor=MUTED, color=TEXT, gridcolor=GRID),
+               tickcolor=MUTED, color=TEXT, gridcolor=GRID, automargin=True),
     yaxis=dict(gridcolor=GRID, gridwidth=0.6, zeroline=False,
-               showline=False, tickcolor=MUTED, color=TEXT),
+               showline=False, tickcolor=MUTED, color=TEXT, automargin=True),
     legend=dict(bgcolor="rgba(0,0,0,0)", borderwidth=0,
                 font=dict(color=TEXT, size=11)),
     hoverlabel=dict(bgcolor=CARD_BG2, bordercolor=GRID,
@@ -167,17 +167,20 @@ def insight(text):
     st.markdown(f'<div class="insight-box">💡 {text}</div>', unsafe_allow_html=True)
 
 def chart(fig, caption_text, interpretar_text, dados_text, insight_text=None):
-    """Renderiza gráfico com legenda, dropdowns e insights."""
+    """Renderiza gráfico com dados fixos por baixo e dropdown de interpretação."""
     st.plotly_chart(fig, use_container_width=True, theme=None)
     if caption_text:
         st.caption(caption_text)
-    col1, col2 = st.columns(2)
-    with col1:
-        with st.expander("📖 Como interpretar este gráfico"):
-            st.markdown(interpretar_text)
-    with col2:
-        with st.expander("🗄️ De onde vêm estes dados?"):
-            st.markdown(dados_text)
+    # "De onde vêm estes dados?" — sempre visível, fixo
+    st.markdown(
+        f'<div style="background:{CARD_BG};border:1px solid {GRID};border-radius:8px;'
+        f'padding:10px 14px;margin:4px 0 6px 0;font-size:0.80rem;color:{MUTED};">'
+        f'🗄️ <b style="color:{TEXT}">De onde vêm estes dados?</b>'
+        f'&nbsp;&nbsp;{dados_text}</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("📖 Como interpretar este gráfico"):
+        st.markdown(interpretar_text)
     if insight_text:
         with st.expander("💡 Como são gerados estes Insights"):
             st.markdown(insight_text)
@@ -746,6 +749,7 @@ with tab_map[1]:
 
     fig_radar = go.Figure()
     cores_radar = [BLUE, AMBER]
+    fill_radar  = ["rgba(91,141,217,0.2)", "rgba(245,158,11,0.2)"]
     for i, row in radar_df.iterrows():
         vals = list(row[radar_vars]) + [row[radar_vars[0]]]
         fig_radar.add_trace(go.Scatterpolar(
@@ -754,7 +758,7 @@ with tab_map[1]:
             fill="toself",
             name=str(row["TipodeDoente_Label"]),
             line_color=cores_radar[i % len(cores_radar)],
-            fillcolor=cores_radar[i % len(cores_radar)].replace(")", ",0.2)").replace("rgb","rgba") if "rgb" in cores_radar[i % len(cores_radar)] else cores_radar[i % len(cores_radar)] + "33",
+            fillcolor=fill_radar[i % len(fill_radar)],
         ))
     fig_radar.update_layout(
         paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG,
