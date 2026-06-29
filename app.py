@@ -779,41 +779,77 @@ with tab_map[1]:
           "O gráfico permite identificar trajectórias de risco: por exemplo, "
           "fumadores com diabetes e colesterol tendem a concentrar maior mortalidade esperada.")
 
-    # Radar
+    # Radar — estética HUD/tech azul desvanecida
     st.markdown('<div class="section-title">Perfis Clínicos</div>',
                 unsafe_allow_html=True)
     from sklearn.preprocessing import MinMaxScaler
-    radar_vars = ["Freq_Resp","pH","pO2_AntesTrat","IMC","Glicemia_AntesTrat"]
+    radar_vars   = ["Freq_Resp","pH","pO2_AntesTrat","IMC","Glicemia_AntesTrat"]
     radar_labels = ["Freq. Resp.","pH","pO₂ Antes","IMC","Glicemia"]
     radar_df = df.groupby("TipodeDoente_Label")[radar_vars].mean().reset_index()
     scaler = MinMaxScaler()
     radar_df[radar_vars] = scaler.fit_transform(radar_df[radar_vars])
 
+    # Paleta HUD: ciano e azul elétrico desvanecidos
+    hud_line  = ["#00e5ff", "#1565c0"]          # ciano brilhante · azul escuro
+    hud_fill  = ["rgba(0,229,255,0.08)", "rgba(21,101,192,0.10)"]
+    hud_marker= ["rgba(0,229,255,0.9)", "rgba(100,181,246,0.9)"]
+
     fig_radar = go.Figure()
-    cores_radar = [BLUE, AMBER]
-    fill_radar  = ["rgba(91,141,217,0.2)", "rgba(245,158,11,0.2)"]
     for i, row in radar_df.iterrows():
-        vals = list(row[radar_vars]) + [row[radar_vars[0]]]
+        vals   = list(row[radar_vars]) + [row[radar_vars[0]]]
+        labels = radar_labels + [radar_labels[0]]
         fig_radar.add_trace(go.Scatterpolar(
-            r=vals,
-            theta=radar_labels + [radar_labels[0]],
+            r=vals, theta=labels,
             fill="toself",
+            fillcolor=hud_fill[i % len(hud_fill)],
+            line=dict(color=hud_line[i % len(hud_line)], width=1.8),
+            marker=dict(size=6, color=hud_marker[i % len(hud_marker)],
+                        symbol="circle",
+                        line=dict(color=hud_line[i % len(hud_line)], width=1)),
             name=str(row["TipodeDoente_Label"]),
-            line_color=cores_radar[i % len(cores_radar)],
-            fillcolor=fill_radar[i % len(fill_radar)],
+            hovertemplate="<b>%{theta}</b><br>Score norm.: %{r:.2f}<extra>"
+                          + str(row["TipodeDoente_Label"]) + "</extra>",
         ))
+
     fig_radar.update_layout(
-        paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG,
-        font=dict(color=TEXT),
+        paper_bgcolor=CARD_BG,
+        font=dict(color=TEXT, family="monospace"),
         polar=dict(
-            bgcolor=CARD_BG,
-            radialaxis=dict(visible=True, range=[0,1], color=MUTED, gridcolor=GRID),
-            angularaxis=dict(color=TEXT, gridcolor=GRID),
+            bgcolor="#0a0f1e",            # fundo quase preto
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1],
+                tickvals=[0.25, 0.5, 0.75, 1.0],
+                ticktext=["0.25","0.50","0.75","1.00"],
+                tickfont=dict(size=8, color="rgba(0,229,255,0.5)"),
+                gridcolor="rgba(0,229,255,0.12)",
+                gridwidth=1,
+                linecolor="rgba(0,229,255,0.2)",
+                showline=True,
+                angle=90,
+            ),
+            angularaxis=dict(
+                tickfont=dict(size=11, color="#00e5ff"),
+                gridcolor="rgba(0,229,255,0.15)",
+                gridwidth=1,
+                linecolor="rgba(0,229,255,0.25)",
+                rotation=90,
+                direction="clockwise",
+            ),
         ),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=TEXT)),
-        margin=dict(l=16, r=16, t=80, b=16),
-        title=dict(text="Perfis Clínicos Médios por Tipo de Doente (normalizado)",
-                   x=0.01, font=dict(size=15, color=TEXT)),
+        legend=dict(
+            bgcolor="rgba(0,0,0,0)",
+            borderwidth=0,
+            font=dict(color=TEXT, size=11),
+            orientation="h",
+            y=-0.08, x=0.5, xanchor="center",
+        ),
+        margin=dict(l=40, r=40, t=80, b=40),
+        height=420,
+        title=dict(
+            text="Perfis Clínicos Médios por Tipo de Doente (normalizado [0–1])",
+            x=0.01, font=dict(size=15, color=TEXT),
+        ),
     )
     chart(fig_radar,
           "Comparação de perfis clínicos médios normalizados [0,1] por tipo de doente.",
@@ -1222,7 +1258,10 @@ if 3 in abas_acesso:
             texttemplate="%{text}",
             textfont_size=8,
             hovertemplate="<b>%{x}</b> × <b>%{y}</b><br>r = %{z:.2f}<extra></extra>",
-            colorbar=dict(title="r", tickfont=dict(color=TEXT), titlefont=dict(color=TEXT)),
+            colorbar=dict(
+                title=dict(text="r", font=dict(color=TEXT)),
+                tickfont=dict(color=TEXT),
+            ),
         ))
         apply_layout(fig_hm, "Heatmap de Correlações (Pearson)",
                      margin=dict(l=80, r=16, t=80, b=80))
