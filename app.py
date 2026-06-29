@@ -20,30 +20,36 @@ st.set_page_config(
 )
 
 # ── Paleta e tema ──────────────────────────────────────────────────────────
-BG       = "#0d1117"
-CARD_BG  = "#141d2d"
-CARD_BG2 = "#1a2640"
-TEXT     = "#e8ecf4"
-MUTED    = "#7a8aaa"
-GRID     = "#2a3550"
-BLUE     = "#5b8dd9"
-CYAN     = "#22d3ee"
-GREEN    = "#10b981"
-AMBER    = "#f59e0b"
-RED      = "#ef4444"
-PURPLE   = "#a855f7"
-PINK     = "#ec4899"
+BG       = "#060d1a"        # fundo global — quase preto azulado
+CARD_BG  = "#0a1628"        # cards e painéis
+CARD_BG2 = "#0d1f3c"        # hover e camadas secundárias
+TEXT     = "#cce8ff"        # texto principal — azul muito claro
+MUTED    = "#4a7fa5"        # texto secundário — azul acinzentado
+GRID     = "#0f2a44"        # linhas de grelha
+
+# Paleta tech — todas desvanecidas (baixa saturação/opacidade nas áreas)
+CYAN     = "#00e5ff"        # ciano brilhante — cor primária
+BLUE     = "#1976d2"        # azul royal
+BLUE2    = "#0288d1"        # azul médio
+TEAL     = "#00acc1"        # teal
+INDIGO   = "#3949ab"        # índigo
+BLUE_LT  = "#64b5f6"        # azul claro
+GREEN    = "#00bfa5"        # verde-teal desvanecido
+AMBER    = "#0288d1"        # substitui âmbar por azul médio na paleta tech
+RED      = "#ef5350"        # vermelho suave (mantém para alertas)
+PURPLE   = "#5c6bc0"        # índigo desvanecido
+PINK     = "#26c6da"        # ciano escuro em vez de rosa
 
 HOSP_COLORS = {
-    "São José":       BLUE,
-    "CUF":            GREEN,
-    "Santa Maria":    AMBER,
-    "Luz":            PURPLE,
-    "Beatriz Angelo": RED,
-    "Amadora Sintra": CYAN,
+    "São José":       "#00e5ff",   # ciano
+    "CUF":            "#1976d2",   # azul royal
+    "Santa Maria":    "#0288d1",   # azul médio
+    "Luz":            "#00acc1",   # teal
+    "Beatriz Angelo": "#5c6bc0",   # índigo
+    "Amadora Sintra": "#64b5f6",   # azul claro
 }
 
-PALETTE = [BLUE, GREEN, AMBER, RED, PURPLE, CYAN, PINK, "#f97316"]
+PALETTE = ["#00e5ff","#1976d2","#0288d1","#00acc1","#5c6bc0","#64b5f6","#26c6da","#3949ab"]
 
 PLOTLY_LAYOUT = dict(
     paper_bgcolor=CARD_BG,
@@ -779,60 +785,64 @@ with tab_map[1]:
           "O gráfico permite identificar trajectórias de risco: por exemplo, "
           "fumadores com diabetes e colesterol tendem a concentrar maior mortalidade esperada.")
 
-    # Radar — estética HUD/tech azul desvanecida
-    st.markdown('<div class="section-title">Perfis Clínicos</div>',
+    # Radar — estética HUD/tech · 6 hospitais
+    st.markdown('<div class="section-title">Perfis Clínicos por Hospital</div>',
                 unsafe_allow_html=True)
     from sklearn.preprocessing import MinMaxScaler
     radar_vars   = ["Freq_Resp","pH","pO2_AntesTrat","IMC","Glicemia_AntesTrat"]
-    radar_labels = ["Freq. Resp.","pH","pO₂ Antes","IMC","Glicemia"]
-    radar_df = df.groupby("TipodeDoente_Label")[radar_vars].mean().reset_index()
+    radar_labels = ["Freq.\nResp.","pH","pO₂\nAntes","IMC","Glicemia\nAntes"]
+    radar_df = df.groupby("Hospital")[radar_vars].mean().reset_index()
     scaler = MinMaxScaler()
     radar_df[radar_vars] = scaler.fit_transform(radar_df[radar_vars])
 
-    # Paleta HUD: ciano e azul elétrico desvanecidos
-    hud_line  = ["#00e5ff", "#1565c0"]          # ciano brilhante · azul escuro
-    hud_fill  = ["rgba(0,229,255,0.08)", "rgba(21,101,192,0.10)"]
-    hud_marker= ["rgba(0,229,255,0.9)", "rgba(100,181,246,0.9)"]
+    # Paleta HUD 6 cores — ciano/azul desvanecido
+    hud_line  = list(HOSP_COLORS.values())
+    hud_fill  = [c.replace("#","") for c in hud_line]
+    # Converter hex para rgba com opacidade baixa
+    def hex_rgba(h, a=0.07):
+        h = h.lstrip("#")
+        r,g,b = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
+        return f"rgba({r},{g},{b},{a})"
 
     fig_radar = go.Figure()
     for i, row in radar_df.iterrows():
-        vals   = list(row[radar_vars]) + [row[radar_vars[0]]]
-        labels = radar_labels + [radar_labels[0]]
+        hosp = row["Hospital"]
+        cor  = HOSP_COLORS.get(hosp, CYAN)
+        vals = list(row[radar_vars]) + [row[radar_vars[0]]]
         fig_radar.add_trace(go.Scatterpolar(
-            r=vals, theta=labels,
+            r=vals,
+            theta=radar_labels + [radar_labels[0]],
             fill="toself",
-            fillcolor=hud_fill[i % len(hud_fill)],
-            line=dict(color=hud_line[i % len(hud_line)], width=1.8),
-            marker=dict(size=6, color=hud_marker[i % len(hud_marker)],
-                        symbol="circle",
-                        line=dict(color=hud_line[i % len(hud_line)], width=1)),
-            name=str(row["TipodeDoente_Label"]),
-            hovertemplate="<b>%{theta}</b><br>Score norm.: %{r:.2f}<extra>"
-                          + str(row["TipodeDoente_Label"]) + "</extra>",
+            fillcolor=hex_rgba(cor, 0.07),
+            line=dict(color=cor, width=1.5),
+            marker=dict(size=5, color=cor,
+                        line=dict(color=cor, width=1)),
+            name=hosp,
+            hovertemplate="<b>" + hosp + "</b><br>%{theta}: %{r:.2f}<extra></extra>",
         ))
 
     fig_radar.update_layout(
         paper_bgcolor=CARD_BG,
-        font=dict(color=TEXT, family="monospace"),
+        font=dict(color=TEXT, family="monospace", size=10),
         polar=dict(
-            bgcolor="#0a0f1e",            # fundo quase preto
+            bgcolor="#030a14",
             radialaxis=dict(
                 visible=True,
                 range=[0, 1],
                 tickvals=[0.25, 0.5, 0.75, 1.0],
-                ticktext=["0.25","0.50","0.75","1.00"],
-                tickfont=dict(size=8, color="rgba(0,229,255,0.5)"),
-                gridcolor="rgba(0,229,255,0.12)",
+                ticktext=["","","",""],
+                tickfont=dict(size=7, color="rgba(0,229,255,0.3)"),
+                gridcolor="rgba(0,229,255,0.08)",
                 gridwidth=1,
-                linecolor="rgba(0,229,255,0.2)",
+                linecolor="rgba(0,229,255,0.15)",
                 showline=True,
                 angle=90,
             ),
             angularaxis=dict(
-                tickfont=dict(size=11, color="#00e5ff"),
-                gridcolor="rgba(0,229,255,0.15)",
+                tickfont=dict(size=10, color=CYAN),
+                gridcolor="rgba(0,229,255,0.10)",
                 gridwidth=1,
-                linecolor="rgba(0,229,255,0.25)",
+                linecolor="rgba(0,229,255,0.20)",
                 rotation=90,
                 direction="clockwise",
             ),
@@ -840,25 +850,26 @@ with tab_map[1]:
         legend=dict(
             bgcolor="rgba(0,0,0,0)",
             borderwidth=0,
-            font=dict(color=TEXT, size=11),
+            font=dict(color=TEXT, size=10),
             orientation="h",
-            y=-0.08, x=0.5, xanchor="center",
+            y=-0.12, x=0.5, xanchor="center",
         ),
-        margin=dict(l=40, r=40, t=80, b=40),
-        height=420,
+        margin=dict(l=50, r=50, t=80, b=60),
+        height=450,
         title=dict(
-            text="Perfis Clínicos Médios por Tipo de Doente (normalizado [0–1])",
+            text="Perfis Clínicos Médios por Hospital (normalizado [0–1])",
             x=0.01, font=dict(size=15, color=TEXT),
         ),
     )
     chart(fig_radar,
-          "Comparação de perfis clínicos médios normalizados [0,1] por tipo de doente.",
-          "Cada eixo representa uma variável clínica normalizada. "
-          "Quanto mais afastado do centro, maior o valor médio relativo. "
-          "A área maior indica um perfil clínico mais comprometido nessas dimensões.",
+          "Comparação de perfis clínicos médios normalizados [0,1] por hospital.",
+          "Cada polígono representa um hospital. Quanto mais afastado do centro num eixo, "
+          "maior o valor médio normalizado dessa variável clínica. "
+          "Polígonos sobrepostos indicam perfis clínicos semelhantes entre hospitais.",
           "Variáveis **Freq_Resp**, **pH**, **pO2_AntesTrat**, **IMC** e **Glicemia_AntesTrat** "
-          "normalizadas com MinMaxScaler. Agrupamento por **TipodeDoente**.",
-          None)
+          "normalizadas com MinMaxScaler (0=mínimo, 1=máximo da amostra). Agrupamento por **Hospital**.",
+          "Diferenças expressivas entre hospitais num eixo específico podem indicar "
+          "diferenças no case-mix ou nos protocolos clínicos de cada unidade.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
